@@ -1,0 +1,149 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>交响乐团 · Symphony Orchestra</title>
+  <meta name="description" content="交响乐团官方网站 — 音乐会、指挥家、乐团声部与演出日程" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,600;0,700;1,400&family=Noto+Serif+SC:wght@400;600;700&family=Noto+Sans+SC:wght@300;400;500&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <canvas id="stage-canvas" aria-hidden="true"></canvas>
+
+  <!-- 导航 -->
+  <header class="nav" id="nav">
+    <a class="nav__brand" href="#top">
+      <span class="nav__logo">♪</span>
+      <span class="nav__text">AURORA 交响乐团</span>
+    </a>
+    <nav class="nav__links">
+      <a href="#home">首页</a>
+      <a href="#sections">声部</a>
+      <a href="#conductors">指挥家</a>
+      <a href="#repertoire">曲目</a>
+      <a href="#concerts">演出日程</a>
+      <a href="#ticket" class="nav__cta">购票</a>
+    </nav>
+    <button class="nav__burger" id="navBurger" aria-label="打开菜单">☰</button>
+  </header>
+
+  <!-- 首页 -->
+  <section class="hero" id="home">
+    <p class="hero__kicker">EST. 1896 · SYMPHONY</p>
+    <h1 class="hero__title">让每一个音符<br /><em>都值得一场交响</em></h1>
+    <p class="hero__sub">百二十余位乐手，四大家族声部，一个共同的呼吸。<br />在指挥棒划破寂静的那一刻，世界开始聆听。</p>
+    <div class="hero__actions">
+      <a href="#concerts" class="btn btn--gold">查看演出日程</a>
+      <a href="#sections" class="btn btn--ghost">走进乐团</a>
+    </div>
+    <div class="hero__stats">
+      <div><strong data-count="130">0</strong><span>乐团历史（年）</span></div>
+      <div><strong data-count="248">0</strong><span>每年演出场次</span></div>
+      <div><strong data-count="96">0</strong><span>驻团演奏家</span></div>
+    </div>
+  </section>
+
+  <!-- 声部 -->
+  <section class="section" id="sections">
+    <p class="section__eyebrow">THE ORCHESTRA</p>
+    <h2 class="section__title">四大声部，一个声音</h2>
+    <p class="section__lead">点击每个声部，聆听它们的音色。</p>
+
+    <div class="voices" id="voices">
+      <article class="voice" data-note="261.63" data-wave="sawtooth" data-gain="0.12" tabindex="0">
+        <div class="voice__icon">𝄢</div>
+        <h3>弦乐</h3>
+        <p>小提琴 · 中提琴 · 大提琴 · 低音提琴<br />乐团的心脏，占约 60% 的乐手</p>
+      </article>
+      <article class="voice voice--gold" data-note="392.00" data-wave="triangle" data-gain="0.10" tabindex="0">
+        <div class="voice__icon">𝄞</div>
+        <h3>木管</h3>
+        <p>长笛 · 单簧管 · 双簧管 · 大管<br />最灵动、最人声的音色</p>
+      </article>
+      <article class="voice" data-note="523.25" data-wave="square" data-gain="0.06" tabindex="0">
+        <div class="voice__icon">𝄢</div>
+        <h3>铜管</h3>
+        <p>圆号 · 小号 · 长号 · 大号<br />光芒与力量，铜壁的辉煌</p>
+      </article>
+      <article class="voice" data-note="130.81" data-wave="sine" data-gain="0.14" tabindex="0">
+        <div class="voice__icon">𝄠</div>
+        <h3>打击乐</h3>
+        <p>定音鼓 · 镲 · 木琴 · 钟琴<br />时间的骨架，心跳的落点</p>
+      </article>
+    </div>
+    <p class="voice__hint" id="voiceHint">提示：点击声部卡片可以试听该声部的音色（已合成）</p>
+  </section>
+
+  <!-- 指挥家 -->
+  <section class="section section--dark" id="conductors">
+    <p class="section__eyebrow">CONDUCTORS</p>
+    <h2 class="section__title">站在台前的双手</h2>
+    <div class="conductors">
+      <figure class="conductor">
+        <div class="conductor__avatar">A</div>
+        <figcaption><strong>艾琳 · 冯·哈根</strong><span>音乐总监 &amp; 首席指挥</span></figcaption>
+      </figure>
+      <figure class="conductor">
+        <div class="conductor__avatar conductor__avatar--alt">L</div>
+        <figcaption><strong>陆之弦</strong><span>驻团指挥</span></figcaption>
+      </figure>
+      <figure class="conductor">
+        <div class="conductor__avatar conductor__avatar--alt">S</div>
+        <figcaption><strong>索菲亚 · 里德尔</strong><span>青年指挥（驻团）</span></figcaption>
+      </figure>
+      <figure class="conductor">
+        <div class="conductor__avatar conductor__avatar--alt">K</div>
+        <figcaption><strong>凯勒 · 安德森</strong><span>客座指挥</span></figcaption>
+      </figure>
+    </div>
+  </section>
+
+  <!-- 曲目 -->
+  <section class="section" id="repertoire">
+    <p class="section__eyebrow">REPERTOIRE</p>
+    <h2 class="section__title">常演曲目</h2>
+    <div class="rep" id="rep">
+      <div class="rep__item"><span class="rep__composer">巴赫</span><h3>《降B小调双簧管咏叹调》</h3><p>BWV 1067 · 管弦乐小品 · 约 4 分钟</p></div>
+      <div class="rep__item"><span class="rep__composer">莫扎特</span><h3>《第 40 号交响曲 G 小调》</h3><p>K. 550 · 交响曲 · 约 27 分钟</p></div>
+      <div class="rep__item"><span class="rep__composer">贝多芬</span><h3>《第五交响曲 "命运"》</h3><p>Op. 67 · 交响曲 · 约 30 分钟</p></div>
+      <div class="rep__item"><span class="rep__composer">柴可夫斯基</span><h3>《天鹅湖》节选</h3><p>Op. 20 · 芭蕾音乐 · 约 22 分钟</p></div>
+      <div class="rep__item"><span class="rep__composer">德沃夏克</span><h3>《自新大陆》第二乐章</h3><p>Op. 92 · 交响曲 · 约 9 分钟</p></div>
+      <div class="rep__item"><span class="rep__composer">马勒</span><h3>《第五交响曲》</h3><p>Op. 98 · 交响曲 · 约 55 分钟</p></div>
+    </div>
+  </section>
+
+  <!-- 演出日程 -->
+  <section class="section section--dark" id="concerts">
+    <p class="section__eyebrow">UPCOMING CONCERTS</p>
+    <h2 class="section__title">演出日程</h2>
+    <div class="concerts" id="concertList"></div>
+  </section>
+
+  <!-- 购票 -->
+  <section class="ticket" id="ticket">
+    <h2 class="section__title">购票与会员</h2>
+    <p class="ticket__lead">现场是唯一的答案。欢迎加入 AURORA 交响乐友会。</p>
+    <form class="ticket__form" id="ticketForm" novalidate>
+      <input type="text" id="tName" placeholder="姓名" required />
+      <input type="email" id="tEmail" placeholder="邮箱" required />
+      <select id="tLevel">
+        <option value="vip">VIP 乐友（含彩排）</option>
+        <option value="gold">金卡会员</option>
+        <option value="standard">普通会员</option>
+      </select>
+      <button class="btn btn--gold" type="submit">申请成为乐友</button>
+    </form>
+    <p class="ticket__note" id="ticketNote"></p>
+  </section>
+
+  <footer class="footer">
+    <p>© 2026 AURORA 交响乐团 · Symphony of Aurora</p>
+    <p class="footer__fine">本页为演示站点</p>
+  </footer>
+
+  <script src="script.js"></script>
+</body>
+</html>
