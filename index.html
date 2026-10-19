@@ -27,11 +27,20 @@
       <a href="#concerts">演出日程</a>
       <a href="#ticket" class="nav__cta">购票</a>
     </nav>
-    <button class="nav__burger" id="navBurger" aria-label="打开菜单">☰</button>
+    <div class="nav__tools">
+      <button class="nav__theme" id="themeToggle" aria-label="切换主题">
+        <span class="nav__theme-icon" id="themeIcon">☾</span>
+        <span id="themeLabel">排练厅</span>
+      </button>
+      <button class="nav__burger" id="navBurger" aria-label="打开菜单">☰</button>
+    </div>
   </header>
 
   <!-- 首页 -->
   <section class="hero" id="home">
+    <div class="hero__bg" aria-hidden="true">
+      <img src="assets/hero-bg.jpg" alt="" loading="eager" />
+    </div>
     <p class="hero__kicker">EST. 1896 · SYMPHONY</p>
     <h1 class="hero__title">让每一个音符<br /><em>都值得一场交响</em></h1>
     <p class="hero__sub">百二十余位乐手，四大家族声部，一个共同的呼吸。<br />在指挥棒划破寂静的那一刻，世界开始聆听。</p>
@@ -83,19 +92,31 @@
     <h2 class="section__title">站在台前的双手</h2>
     <div class="conductors">
       <figure class="conductor">
-        <div class="conductor__avatar">A</div>
+        <div class="conductor__avatar">
+          <span class="conductor__initial">A</span>
+          <img src="assets/conductors/conductor-1.svg" alt="指挥家 · 艾琳 · 冯·哈根" loading="lazy" />
+        </div>
         <figcaption><strong>艾琳 · 冯·哈根</strong><span>音乐总监 &amp; 首席指挥</span></figcaption>
       </figure>
       <figure class="conductor">
-        <div class="conductor__avatar conductor__avatar--alt">L</div>
+        <div class="conductor__avatar">
+          <span class="conductor__initial">L</span>
+          <img src="assets/conductors/conductor-2.svg" alt="指挥家 · 陆之弦" loading="lazy" />
+        </div>
         <figcaption><strong>陆之弦</strong><span>驻团指挥</span></figcaption>
       </figure>
       <figure class="conductor">
-        <div class="conductor__avatar conductor__avatar--alt">S</div>
+        <div class="conductor__avatar">
+          <span class="conductor__initial">S</span>
+          <img src="assets/conductors/conductor-3.svg" alt="指挥家 · 索菲亚 · 里德尔" loading="lazy" />
+        </div>
         <figcaption><strong>索菲亚 · 里德尔</strong><span>青年指挥（驻团）</span></figcaption>
       </figure>
       <figure class="conductor">
-        <div class="conductor__avatar conductor__avatar--alt">K</div>
+        <div class="conductor__avatar">
+          <span class="conductor__initial">K</span>
+          <img src="assets/conductors/conductor-4.svg" alt="指挥家 · 凯勒 · 安德森" loading="lazy" />
+        </div>
         <figcaption><strong>凯勒 · 安德森</strong><span>客座指挥</span></figcaption>
       </figure>
     </div>
@@ -106,12 +127,12 @@
     <p class="section__eyebrow">REPERTOIRE</p>
     <h2 class="section__title">常演曲目</h2>
     <div class="rep" id="rep">
-      <div class="rep__item"><span class="rep__composer">巴赫</span><h3>《降B小调双簧管咏叹调》</h3><p>BWV 1067 · 管弦乐小品 · 约 4 分钟</p></div>
-      <div class="rep__item"><span class="rep__composer">莫扎特</span><h3>《第 40 号交响曲 G 小调》</h3><p>K. 550 · 交响曲 · 约 27 分钟</p></div>
-      <div class="rep__item"><span class="rep__composer">贝多芬</span><h3>《第五交响曲 "命运"》</h3><p>Op. 67 · 交响曲 · 约 30 分钟</p></div>
-      <div class="rep__item"><span class="rep__composer">柴可夫斯基</span><h3>《天鹅湖》节选</h3><p>Op. 20 · 芭蕾音乐 · 约 22 分钟</p></div>
-      <div class="rep__item"><span class="rep__composer">德沃夏克</span><h3>《自新大陆》第二乐章</h3><p>Op. 92 · 交响曲 · 约 9 分钟</p></div>
-      <div class="rep__item"><span class="rep__composer">马勒</span><h3>《第五交响曲》</h3><p>Op. 98 · 交响曲 · 约 55 分钟</p></div>
+      <div class="rep__item"><img class="rep__emblem" src="assets/composers/bach.svg" alt="" loading="lazy" /><div class="rep__text"><span class="rep__composer">巴赫</span><h3>《降B小调双簧管咏叹调》</h3><p>BWV 1067 · 管弦乐小品 · 约 4 分钟</p></div></div>
+      <div class="rep__item"><img class="rep__emblem" src="assets/composers/mozart.svg" alt="" loading="lazy" /><div class="rep__text"><span class="rep__composer">莫扎特</span><h3>《第 40 号交响曲 G 小调》</h3><p>K. 550 · 交响曲 · 约 27 分钟</p></div></div>
+      <div class="rep__item"><img class="rep__emblem" src="assets/composers/beethoven.svg" alt="" loading="lazy" /><div class="rep__text"><span class="rep__composer">贝多芬</span><h3>《第五交响曲 "命运"》</h3><p>Op. 67 · 交响曲 · 约 30 分钟</p></div></div>
+      <div class="rep__item"><img class="rep__emblem" src="assets/composers/tchaikovsky.svg" alt="" loading="lazy" /><div class="rep__text"><span class="rep__composer">柴可夫斯基</span><h3>《天鹅湖》节选</h3><p>Op. 20 · 芭蕾音乐 · 约 22 分钟</p></div></div>
+      <div class="rep__item"><img class="rep__emblem" src="assets/composers/dvorak.svg" alt="" loading="lazy" /><div class="rep__text"><span class="rep__composer">德沃夏克</span><h3>《自新大陆》第二乐章</h3><p>Op. 92 · 交响曲 · 约 9 分钟</p></div></div>
+      <div class="rep__item"><img class="rep__emblem" src="assets/composers/mahler.svg" alt="" loading="lazy" /><div class="rep__text"><span class="rep__composer">马勒</span><h3>《第五交响曲》</h3><p>Op. 98 · 交响曲 · 约 55 分钟</p></div></div>
     </div>
   </section>
 

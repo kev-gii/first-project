@@ -80,7 +80,54 @@
   );
 })();
 
-/* ---------- 3. 数字滚动动画 ---------- */
+/* ---------- 3. 主题切换 + 音乐厅灯光（按时间自动） ---------- */
+(function initTheme() {
+  const root = document.documentElement;
+  const btn = document.getElementById("themeToggle");
+  const icon = document.getElementById("themeIcon");
+  const label = document.getElementById("themeLabel");
+
+  // 手动选择优先，其次按时间：晚 19:00–早 7:00 → 冷蓝灯光（音乐厅夜间模式）
+  function autoLighting() {
+    const hour = new Date().getHours();
+    return hour >= 19 || hour < 7;
+  }
+  function apply(theme, lighting) {
+    if (theme === "light") {
+      root.setAttribute("data-theme", "light");
+    } else {
+      root.removeAttribute("data-theme");
+    }
+    if (lighting === "cool") {
+      root.setAttribute("data-lighting", "cool");
+    } else {
+      root.removeAttribute("data-lighting");
+    }
+    const dark = theme !== "light";
+    icon.textContent = dark ? "☾" : "☀";
+    label.textContent = dark ? "排练厅" : "舞台";
+    btn.setAttribute(
+      "aria-label",
+      dark ? "切换到浅色排练厅主题" : "切换到深色舞台主题"
+    );
+  }
+
+  let manual = localStorage.getItem("aurora-theme");
+  if (!manual) {
+    apply("dark", autoLighting() ? "cool" : "warm");
+  } else {
+    apply(manual, manual === "dark" && autoLighting() ? "cool" : "warm");
+  }
+
+  btn.addEventListener("click", () => {
+    const next = root.getAttribute("data-theme") === "light" ? "dark" : "light";
+    manual = next;
+    localStorage.setItem("aurora-theme", next);
+    apply(next, next === "dark" && autoLighting() ? "cool" : "warm");
+  });
+})();
+
+/* ---------- 4. 数字滚动动画 ---------- */
 (function initCounters() {
   const nums = document.querySelectorAll("[data-count]");
   const io = new IntersectionObserver((entries) => {
@@ -185,8 +232,22 @@
         ${c.sold
           ? `<a class="btn btn--ghost concert__soldout" href="#ticket" style="border-color:#555">已售罄</a>`
           : `<a class="btn btn--gold" href="#ticket">购票</a>`}
-      </div>`)
+      </div>`
+    )
     .join("");
+
+  // 小节线分隔符（声部/曲目/演出日程 之间）
+  const ids = ["sections", "repertoire", "concerts"];
+  ids.forEach((id) => {
+    const sec = document.getElementById(id);
+    if (sec && sec.parentElement) {
+      const d = document.createElement("div");
+      d.className = "divider";
+      d.setAttribute("aria-hidden", "true");
+      d.innerHTML = "<span>𝄂 𝄞 𝄢 𝄂</span>";
+      sec.parentElement.insertBefore(d, sec);
+    }
+  });
 })();
 
 /* ---------- 6. 购票表单：校验 + 反馈 ---------- */

@@ -1,0 +1,18 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="96" height="96" viewBox="0 0 96 96" role="img" aria-label="巴赫">
+  <defs>
+    <radialGradient id="p" cx="38%" cy="30%" r="80%">
+      <stop offset="0%" stop-color="#2a2118"/>
+      <stop offset="100%" stop-color="#151009"/>
+    </radialGradient>
+  </defs>
+  <rect width="96" height="96" rx="12" fill="url(#p)"/>
+  <g stroke="#c9a45c" stroke-opacity="0.30" stroke-width="1">
+    <line x1="14" y1="58" x2="82" y2="58"/>
+    <line x1="14" y1="63" x2="82" y2="63"/>
+    <line x1="14" y1="68" x2="82" y2="68"/>
+    <line x1="14" y1="73" x2="82" y2="73"/>
+    <line x1="14" y1="78" x2="82" y2="78"/>
+  </g>
+  <text x="48" y="52" text-anchor="middle" font-family="Georgia,'Times New Roman',serif" font-size="40" font-weight="600" fill="#e8c987" opacity="0.92">B</text>
+  <text x="48" y="90" text-anchor="middle" font-family="Georgia,serif" font-size="7.5" letter-spacing="1.4" fill="#c9a45c" opacity="0.75">J. S. BACH · 1685–1750</text>
+</svg>

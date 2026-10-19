@@ -1,0 +1,20 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200" role="img" aria-label="指挥家剪影">
+  <defs>
+    <radialGradient id="spot" cx="50%" cy="32%" r="80%">
+      <stop offset="0%" stop-color="#f3ddad"/>
+      <stop offset="45%" stop-color="#c9a45c"/>
+      <stop offset="100%" stop-color="#5d1e29"/>
+    </radialGradient>
+  </defs>
+  <circle cx="100" cy="100" r="100" fill="url(#spot)"/>
+  <circle cx="100" cy="100" r="94" fill="none" stroke="rgba(0,0,0,.28)" stroke-width="2"/>
+  <ellipse cx="100" cy="168" rx="46" ry="9" fill="rgba(0,0,0,.28)"/>
+  <g fill="#15121f">
+    <circle cx="94" cy="56" r="15"/>
+    <path d="M76 76 Q94 64 112 76 L120 124 Q94 134 68 124 Z"/>
+    <path d="M108 84 L142 50 L148 58 L116 92 Z"/>
+    <rect x="142" y="50" width="28" height="3.5" rx="1.75" transform="rotate(-33 142 51)"/>
+    <rect x="38" y="96" width="30" height="20" rx="2" transform="rotate(-6 38 96)"/>
+    <rect x="50" y="114" width="4" height="30"/>
+  </g>
+</svg>
