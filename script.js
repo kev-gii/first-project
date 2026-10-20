@@ -457,6 +457,17 @@ const AudioBus = (function () {
   let playing = false;
   let schedTimer = null;
   let progRaf = 0;
+  let loopGain = null;   // 当前一轮循环的独立增益组（切换/暂停时整体断开）
+
+  // 立即停止所有已排程的振荡器：断开本轮 loopGain + 清重排定时器
+  // （预排程的音符在未来时间才会出声，必须整组断开才能立刻静音）
+  function stopScheduled() {
+    clearSched();
+    if (loopGain) {
+      try { loopGain.disconnect(); } catch (e) { /* 已断开则忽略 */ }
+      loopGain = null;
+    }
+  }
 
   // 标题行：作曲家 + 曲名（与常演曲目一致）
   const TITLES = {
@@ -515,6 +526,12 @@ const AudioBus = (function () {
     const t0 = ctx.currentTime + 0.06;
     activeStart = t0;
 
+    // 本轮循环挂独立增益组：切换/暂停时可整组断开，立即停掉所有已排程音符
+    // （循环重排路径里旧增益组的音符已播完，先断开旧组再建新的）
+    if (loopGain) { try { loopGain.disconnect(); } catch (e) { /* 忽略 */ } }
+    loopGain = ctx.createGain();
+    loopGain.connect(master);
+
     // 预先调度一个完整循环；循环结束前重新调度
     let t = t0;
     let beat = 0;
@@ -529,7 +546,7 @@ const AudioBus = (function () {
         g.gain.setValueAtTime(0, t);
         g.gain.linearRampToValueAtTime(0.22, t + 0.04);
         g.gain.exponentialRampToValueAtTime(0.0001, t + a);
-        osc.connect(g); g.connect(master);
+        osc.connect(g); g.connect(loopGain);
         osc.start(t); osc.stop(t + a + 0.05);
       }
       beat += 1;
@@ -561,11 +578,11 @@ const AudioBus = (function () {
   }
 
   function select(key) {
+    stopScheduled(); // 先停掉上一首（含已排程未播出的音符），再播新的
     active = key;
     playing = true;
     markActive(key);
     if (trackBtn) trackBtn.textContent = "暂停";
-    clearSched();
     schedule(key);
     startProgress();
   }
@@ -578,7 +595,7 @@ const AudioBus = (function () {
     }
     if (playing) {
       playing = false;
-      clearSched();
+      stopScheduled(); // 暂停：整组断开，预排程的剩余音符立即静音
       stopProgress();
       if (trackBtn) trackBtn.textContent = "播放";
     } else {
