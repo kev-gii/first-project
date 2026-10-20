@@ -62,28 +62,28 @@
     <p class="section__lead">点击每个声部，聆听它们的音色。</p>
 
     <div class="voices" id="voices">
-      <article class="voice" data-note="261.63" data-wave="sawtooth" data-gain="0.12" tabindex="0">
+      <article class="voice" data-voice="strings" data-note="261.63" data-wave="sawtooth" data-gain="0.12" tabindex="0">
         <div class="voice__icon">𝄢</div>
         <h3>弦乐</h3>
         <p>小提琴 · 中提琴 · 大提琴 · 低音提琴<br />乐团的心脏，占约 60% 的乐手</p>
       </article>
-      <article class="voice voice--gold" data-note="392.00" data-wave="triangle" data-gain="0.10" tabindex="0">
+      <article class="voice voice--gold" data-voice="woodwinds" data-note="392.00" data-wave="triangle" data-gain="0.10" tabindex="0">
         <div class="voice__icon">𝄞</div>
         <h3>木管</h3>
         <p>长笛 · 单簧管 · 双簧管 · 大管<br />最灵动、最人声的音色</p>
       </article>
-      <article class="voice" data-note="523.25" data-wave="square" data-gain="0.06" tabindex="0">
+      <article class="voice" data-voice="brass" data-note="523.25" data-wave="square" data-gain="0.06" tabindex="0">
         <div class="voice__icon">𝄢</div>
         <h3>铜管</h3>
         <p>圆号 · 小号 · 长号 · 大号<br />光芒与力量，铜壁的辉煌</p>
       </article>
-      <article class="voice" data-note="130.81" data-wave="sine" data-gain="0.14" tabindex="0">
+      <article class="voice" data-voice="percussion" data-note="130.81" data-wave="sine" data-gain="0.14" tabindex="0">
         <div class="voice__icon">𝄠</div>
         <h3>打击乐</h3>
         <p>定音鼓 · 镲 · 木琴 · 钟琴<br />时间的骨架，心跳的落点</p>
       </article>
     </div>
-    <p class="voice__hint" id="voiceHint">提示：点击声部卡片可以试听该声部的音色（已合成）</p>
+    <p class="voice__hint" id="voiceHint">提示：点击声部卡片可以试听该声部的音色（已合成 · 含颤音与弓弦/呼吸细节）</p>
   </section>
 
   <!-- 指挥家 -->
@@ -134,6 +134,18 @@
       <div class="rep__item"><img class="rep__emblem" src="assets/composers/dvorak.svg" alt="" loading="lazy" /><div class="rep__text"><span class="rep__composer">德沃夏克</span><h3>《自新大陆》第二乐章</h3><p>Op. 92 · 交响曲 · 约 9 分钟</p></div></div>
       <div class="rep__item"><img class="rep__emblem" src="assets/composers/mahler.svg" alt="" loading="lazy" /><div class="rep__text"><span class="rep__composer">马勒</span><h3>《第五交响曲》</h3><p>Op. 98 · 交响曲 · 约 55 分钟</p></div></div>
     </div>
+
+    <!-- 迷你播放器：常演曲目主题动机试听 -->
+    <div class="mini-player reveal" aria-label="常演曲目试听">
+      <div class="mini-player__head">
+        <span class="mini-player__title">🎧 曲目试听</span>
+        <span class="mini-player__chip" id="playerNow">点击曲目试听</span>
+        <button class="mini-player__toggle" id="playerToggle" aria-label="播放或暂停当前试听">播放</button>
+      </div>
+      <div class="mini-player__progress" aria-hidden="true"><span id="playerProgress"></span></div>
+      <div class="mini-player__list" id="playerTracks"></div>
+      <p class="mini-player__note">六首主题动机由 Web Audio 现场合成 · 循环播放 · 无音频文件</p>
+    </div>
   </section>
 
   <!-- 演出日程 -->
@@ -159,6 +171,17 @@
     </form>
     <p class="ticket__note" id="ticketNote"></p>
   </section>
+
+  <!-- 悬浮全局音频控制台：音量 + 金色频谱（AnalyserNode） -->
+  <div class="audio-console" id="audioConsole" role="group" aria-label="全局音频控制">
+    <button class="audio-console__toggle" id="audioConsoleToggle" aria-label="展开或收起音频控制台">♪ 音色台</button>
+    <canvas class="audio-console__spectrum" id="audioSpectrum" width="220" height="56" aria-hidden="true"></canvas>
+    <div class="audio-console__row">
+      <label class="audio-console__vol" for="audioVolume">音量</label>
+      <input type="range" id="audioVolume" min="0" max="100" value="90" aria-label="音量" />
+    </div>
+    <p class="audio-console__now" id="audioNow">点击声部或曲目开始试听</p>
+  </div>
 
   <footer class="footer">
     <p>© 2026 AURORA 交响乐团 · Symphony of Aurora</p>
