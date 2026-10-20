@@ -581,6 +581,32 @@ section, header, footer { position: relative; z-index: 1; }
   color: var(--ink-dim);
   font-size: 0.85rem;
 }
+.concert__actions {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+}
+.concert__ics {
+  font-family: var(--sans);
+  font-size: 0.78rem;
+  letter-spacing: 0.06em;
+  color: var(--ink-dim);
+  background: transparent;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  padding: 0.45rem 0.9rem;
+  cursor: pointer;
+  transition: color 0.25s var(--ease), border-color 0.25s var(--ease), background 0.25s var(--ease);
+}
+.concert__ics:hover {
+  color: var(--gold-bright);
+  border-color: var(--line-strong);
+  background: var(--surface-hover);
+}
+.concert__ics:focus-visible {
+  outline: 2px solid var(--gold);
+  outline-offset: 2px;
+}
 .concert__soldout {
   color: var(--ink-dim);
   font-size: 0.8rem;
@@ -883,4 +909,22 @@ section, header, footer { position: relative; z-index: 1; }
   }
   .concert__date { border-right: none; border-bottom: 1px solid var(--line-strong); padding: 0 0 0.6rem; }
   .concert__soldout { text-align: center; }
+  .concert__actions { flex-wrap: wrap; justify-content: center; }
+}
+
+/* ---------- 降低动效（5.2 / 6.1）：系统开启"减少动态效果"时停用全部动画 ---------- */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+  /* 入场动画：内容直接可见，不做位移动画（画布粒子由 JS 静态化） */
+  .reveal {
+    opacity: 1;
+    transform: none;
+  }
 }

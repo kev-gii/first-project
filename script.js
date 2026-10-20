@@ -12,6 +12,16 @@
 
   const GLYPHS = ["𝄞", "𝄢", "♪", "♩", "♫"];
 
+  // 性能降级（5.2）：
+  // - prefers-reduced-motion → 只画一帧静态粒子，不进 rAF 循环
+  // - 低端设备（核心数少 / 内存小 / 高 DPR）→ 粒子数量减半
+  const reduced = matchMedia("(prefers-reduced-motion: reduce)").matches;
+  const lowEnd =
+    (navigator.hardwareConcurrency || 4) <= 4 ||
+    (navigator.deviceMemory || 8) <= 4 ||
+    window.devicePixelRatio > 2.5;
+  const COUNT = lowEnd ? 13 : 26;
+
   function resize() {
     w = canvas.width = window.innerWidth;
     h = canvas.height = window.innerHeight;
@@ -33,25 +43,17 @@
 
   function init() {
     resize();
-    notes = Array.from({ length: 26 }, () => {
+    notes = Array.from({ length: COUNT }, () => {
       const n = makeNote();
       n.y = Math.random() * h; // 首帧铺满全屏
       return n;
     });
   }
 
-  function tick() {
-    // 平滑跟踪当前音频电平：有声时粒子更亮、更活跃
-    const target = AudioBus.getLevel();
-    level += (target - level) * 0.08;
-
+  function paint() {
     ctx.clearRect(0, 0, w, h);
     for (let i = 0; i < notes.length; i++) {
       const n = notes[i];
-      n.y -= n.speed * (1 + level * 3.5);
-      n.x += n.drift;
-      n.rot += n.spin * (1 + level * 2);
-      if (n.y < -60) notes[i] = makeNote();
       const a = Math.min(0.55, n.alpha + level * 0.45);
       ctx.save();
       ctx.translate(n.x, n.y);
@@ -61,12 +63,35 @@
       ctx.fillText(n.glyph, 0, 0);
       ctx.restore();
     }
+  }
+
+  function tick() {
+    // 平滑跟踪当前音频电平：有声时粒子更亮、更活跃
+    const target = AudioBus.getLevel();
+    level += (target - level) * 0.08;
+
+    for (let i = 0; i < notes.length; i++) {
+      const n = notes[i];
+      n.y -= n.speed * (1 + level * 3.5);
+      n.x += n.drift;
+      n.rot += n.spin * (1 + level * 2);
+      if (n.y < -60) notes[i] = makeNote();
+    }
+    paint();
     requestAnimationFrame(tick);
   }
 
-  window.addEventListener("resize", resize);
+  window.addEventListener("resize", () => {
+    resize();
+    if (reduced) paint(); // 降级模式下 resize 后重绘静态帧
+  });
   init();
-  requestAnimationFrame(tick); // 首帧走 rAF：此时整个脚本已加载完，AudioBus 已就绪（避开 const TDZ）
+  if (reduced) {
+    // prefers-reduced-motion：静态粒子背景，不跑动画循环
+    paint();
+  } else {
+    requestAnimationFrame(tick); // 首帧走 rAF：此时整个脚本已加载完，AudioBus 已就绪（避开 const TDZ）
+  }
 })();
 
 /* ---------- 2. 导航：滚动态 + 移动端菜单 ---------- */
@@ -350,34 +375,88 @@ const AudioBus = (function () {
   });
 })();
 
-/* ---------- 7. 演出日程：动态渲染 ---------- */
+/* ---------- 7. 演出日程：外部数据 + 动态渲染 + .ics 下载 ---------- */
 (function initConcerts() {
-  const concerts = [
-    { d: "11", m: "11月", title: "贝多芬 · 命运交响夜", desc: "指挥：艾琳 · 冯·哈根 · 贝多芬《第五交响曲》《第六交响曲 '田园'》", sold: false },
-    { d: "24", m: "11月", title: "柴可夫斯基之夜", desc: "指挥：陆之弦 · 《天鹅湖》精选 · 《第一钢琴协奏曲》", sold: false },
-    { d: "08", m: "12月", title: "冬之序曲 · 新年音乐周", desc: "指挥：凯勒 · 安德森 · 小约翰·施特劳斯圆舞曲专场", sold: true },
-    { d: "21", m: "12月", title: "马勒 · 第五交响曲", desc: "驻团青年系列 · 指挥：索菲亚 · 里德尔 · 与小泽征尔基金会合作", sold: false },
-    { d: "05", m: "1月", title: "德沃夏克 · 自新大陆", desc: "指挥：艾琳 · 冯·哈根 · 与合唱团联袂 · 观众投票最受欢迎曲目", sold: false },
+  // 数据外置：优先 fetch 外部 JSON；file:// 或 fetch 失败时回退内嵌数据
+  // （内容更新只需改 data/concerts.json，无需改 JS）
+  const FALLBACK = [
+    { d: "11", m: "11月", title: "贝多芬 · 命运交响夜", desc: "指挥：艾琳 · 冯·哈根 · 贝多芬《第五交响曲》《第六交响曲 '田园'》", sold: false, year: 2026, time: "19:30", venue: "AURORA 音乐厅 · 主舞台" },
+    { d: "24", m: "11月", title: "柴可夫斯基之夜", desc: "指挥：陆之弦 · 《天鹅湖》精选 · 《第一钢琴协奏曲》", sold: false, year: 2026, time: "19:30", venue: "AURORA 音乐厅 · 主舞台" },
+    { d: "08", m: "12月", title: "冬之序曲 · 新年音乐周", desc: "指挥：凯勒 · 安德森 · 小约翰·施特劳斯圆舞曲专场", sold: true, year: 2026, time: "20:00", venue: "AURORA 音乐厅 · 大厅" },
+    { d: "21", m: "12月", title: "马勒 · 第五交响曲", desc: "驻团青年系列 · 指挥：索菲亚 · 里德尔 · 与小泽征尔基金会合作", sold: false, year: 2026, time: "19:30", venue: "AURORA 音乐厅 · 主舞台" },
+    { d: "05", m: "1月", title: "德沃夏克 · 自新大陆", desc: "指挥：艾琳 · 冯·哈根 · 与合唱团联袂 · 观众投票最受欢迎曲目", sold: false, year: 2027, time: "19:30", venue: "AURORA 音乐厅 · 主舞台" },
   ];
-
   const wrap = document.getElementById("concertList");
-  wrap.innerHTML = concerts
-    .map((c) => `
-      <div class="concert ${c.sold ? "is-soldout" : ""} reveal">
-        <div class="concert__date">
-          <strong>${c.d}</strong>
-          <span>${c.m}</span>
-        </div>
-        <div class="concert__body">
-          <h3>${c.title}</h3>
-          <p>${c.desc}</p>
-        </div>
-        ${c.sold
+
+  function icsEscape(s) {
+    return String(s).replace(/\\/g, "\\\\").replace(/;/g, "\\;").replace(/,/g, "\\,").replace(/\n/g, "\\n");
+  }
+
+  // 计算场次的绝对日期：以 json 里的 year 为准（跨年场次如 1 月应写次年）
+  function concertDate(c) {
+    const y = Number(c.year) || new Date().getFullYear();
+    const mo = Number(c.m.replace(/月/, "")) - 1;
+    return new Date(y, mo, Number(c.d));
+  }
+
+  function buildICS(c) {
+    const dt = concertDate(c);
+    const [hh, mm] = String(c.time || "19:30").split(":");
+    dt.setHours(Number(hh), Number(mm), 0, 0);
+    const durMin = 120;
+    const end = new Date(dt.getTime() + durMin * 60000);
+    const fmt = (d) =>
+      `${d.getFullYear()}${String(d.getMonth() + 1).padStart(2, "0")}${String(d.getDate()).padStart(2, "0")}` +
+      `${String(d.getHours()).padStart(2, "0")}${String(d.getMinutes()).padStart(2, "0")}00`;
+    const uid = `aurora-${c.year || dt.getFullYear()}-${c.d}-concert@example.com`;
+    return [
+      "BEGIN:VCALENDAR", "VERSION:2.0", "PRODID:-//AURORA//Concerts//CN",
+      "BEGIN:VEVENT",
+      `UID:${uid}`,
+      `DTSTAMP:${fmt(new Date())}`,
+      `DTSTART:${fmt(dt)}`,
+      `DTEND:${fmt(end)}`,
+      `SUMMARY:${icsEscape("交响乐团 · " + c.title)}`,
+      `DESCRIPTION:${icsEscape(c.desc || "")}`,
+      `LOCATION:${icsEscape(c.venue || "AURORA 音乐厅")}`,
+      "END:VEVENT", "END:VCALENDAR",
+    ].join("\r\n");
+  }
+
+  function downloadICS(c) {
+    const blob = new Blob([buildICS(c)], { type: "text/calendar;charset=utf-8" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = c.title.replace(/[·、，]/g, "-") + ".ics";
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    setTimeout(() => URL.revokeObjectURL(url), 1500);
+  }
+
+  function render(concerts) {
+    wrap.innerHTML = concerts
+      .map((c, i) => `\n      <div class="concert ${c.sold ? "is-soldout" : ""} reveal">\n        <div class="concert__date">\n          <strong>${c.d}</strong>\n          <span>${c.m}</span>\n        </div>\n        <div class="concert__body">\n          <h3>${c.title}</h3>\n          <p>${c.desc}</p>\n        </div>\n        <div class="concert__actions">\n          ${c.sold
           ? `<a class="btn btn--ghost concert__soldout" href="#ticket" style="border-color:#555">已售罄</a>`
-          : `<a class="btn btn--gold" href="#ticket">购票</a>`}
-      </div>`
-    )
-    .join("");
+          : `<a class="btn btn--gold" href="#ticket">购票</a>`}\n          <button class="concert__ics" type="button" data-ics="${i}" aria-label="将「${c.title}」加入日历">加日历</button>\n        </div>\n      </div>`
+      )
+      .join("");
+
+    wrap.querySelectorAll("[data-ics]").forEach((btn) => {
+      btn.addEventListener("click", () => downloadICS(concerts[Number(btn.dataset.ics)]));
+    });
+  }
+
+  fetch("data/concerts.json")
+    .then((r) => {
+      if (!r.ok) throw new Error("http " + r.status);
+      return r.json();
+    })
+    .then((data) => {
+      Array.isArray(data) && data.length ? render(data) : render(FALLBACK);
+    })
+    .catch(() => render(FALLBACK)); // file:// 或网络异常 → 内嵌数据保底
 
   // 小节线分隔符（声部/曲目/演出日程 之间）
   const ids = ["sections", "repertoire", "concerts"];
@@ -482,16 +561,23 @@ const AudioBus = (function () {
   const tracks = Object.keys(P);
   wrap.innerHTML = tracks
     .map((k, i) => `
-      <button class="mini-player__track" data-tr="${k}" aria-pressed="false">
-        <span class="mini-player__idx">${i + 1}</span>
+      <button class="mini-player__track" data-tr="${k}" aria-pressed="false" aria-label="试听${TITLES[k]}">
+        <span class="mini-player__idx" aria-hidden="true">${i + 1}</span>
         <span class="mini-player__name">${TITLES[k]}</span>
         <span class="mini-player__play" aria-hidden="true">𝄞</span>
       </button>`).join("");
 
   const trackEls = wrap.querySelectorAll(".mini-player__track");
-  trackEls.forEach((el) =>
-    el.addEventListener("click", () => select(el.dataset.tr))
-  );
+  trackEls.forEach((el) => {
+    el.addEventListener("click", () => select(el.dataset.tr));
+    // 键盘可访问：Enter / Space 触发（与 click 等效）
+    el.addEventListener("keydown", (e) => {
+      if (e.key === "Enter" || e.key === " ") {
+        e.preventDefault();
+        select(el.dataset.tr);
+      }
+    });
+  });
 
   function markActive(key) {
     trackEls.forEach((el) => {
