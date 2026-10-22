@@ -1,0 +1,15 @@
+{
+  "name": "aurora-symphony",
+  "private": true,
+  "version": "1.0.0",
+  "type": "module",
+  "description": "AURORA 交响乐团演示站点 — 原生前端 + Vite 模块化构建",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview"
+  },
+  "devDependencies": {
+    "vite": "^7.0.0"
+  }
+}

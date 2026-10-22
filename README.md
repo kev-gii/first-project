@@ -1,6 +1,6 @@
 # AURORA 交响乐团 · 演示站点
 
-一个以交响乐为主题的纯前端演示网站，使用原生 HTML + CSS + JavaScript 构建，无任何框架或构建工具依赖。
+一个以交响乐为主题的纯前端演示网站，**运行时零依赖**（原生 HTML + CSS + ES6+ JavaScript，无任何框架），并用 **Vite** 做本地开发（HMR）与模块化打包。
 
 ## 功能特性
 
@@ -36,20 +36,51 @@
 ## 文件说明
 
 ```
-index.html   页面结构（导航、各区块、座位图、表单）
-style.css    样式（配色、布局、响应式、动画）
-script.js    交互逻辑（画布、数字动画、声部试听、演出渲染、表单校验、迷你播放器、全局音频控制台、选座购票）
-data/        演出日程 JSON（fetch 外置数据）
-assets/soundfont/  声部与曲目采样层（44.1kHz WAV + manifest.json，缺失时自动回退振荡器合成）
+index.html                 页面结构（导航、各区块、座位图、表单）
+src/
+  main.js                  入口：按序初始化各模块
+  style.css                样式（配色、布局、响应式、动画，全部色值为 CSS 变量）
+  core/                    功能模块（画布、导航/主题、数字滚动、声部、演出、
+                           迷你播放器、音频控制台、表单、座位图、共享工具）
+  audio/
+    audio-bus.js           共享音频总线（Web Audio 上下文 + 主增益 + 分析节点）
+    sound-samples.js       采样层（fetch + decodeAudioData 预拉 WAV，缺失回退合成）
+public/
+  assets/                  静态素材（Hero 图、指挥家/作曲家 SVG、soundfont 采样层）
+  data/concerts.json       演出日程（fetch 外置数据）
 tools/make-soundfont-samples.py  采样生成脚本（Python 标准库，生成 WAV 与 manifest）
+vite.config.js             Vite 构建配置（base:"./" 子路径安全、产物入 dist/vendor/）
+package.json               Vite 开发依赖 + 脚本（dev / build / preview）
 ```
+
+## 本地开发与构建
+
+```bash
+npm install       # 安装 Vite（仅开发工具，运行时零依赖）
+npm run dev       # 本地开发（HMR，热更新）
+npm run build     # 生产构建，产物输出到 dist/
+npm run preview   # 在本地预览 dist/ 构建产物
+```
+
+> 直接双击 `index.html` 也能跑（模块经 Vite 解析），但**采样试听与演出数据需经 HTTP 服务**（`file://` 下 `fetch` 受限），故推荐 `npm run dev` / `npm run preview`。
+
+## 部署（GitHub Pages）
+
+推送到 `main` 后，`.github/workflows/github-pages.yml` 自动用 Vite 构建并把 `dist/` 发布到 GitHub Pages：
+
+1. 仓库 **Settings → Pages → Source** 选择 **GitHub Actions**
+2. 之后每次 `push` 到 `main` 自动构建 + 发布
+3. 产物用 `base: "./"`，在 `/first-project/` 子路径可直接打开（无需为部署环境改代码）
+
+> 也可改用 Cloudflare Pages / Vercel，配自定义域名与 CNAME（HTTPS 由 Pages 默认提供）。
 
 ## 使用方法
 
-无需安装依赖，直接用浏览器打开 `index.html` 即可：
+推荐用 Vite 本地开发服务（HMR + 可正常 `fetch` 采样与演出数据）：
 
 ```bash
-open index.html
+npm install
+npm run dev        # 打开终端提示的本地地址即可
 ```
 
 > 声部试听与曲目试听需用户点击触发（浏览器自动播放策略限制）；首次点击后全局音频总线激活，频谱与粒子随之律动。

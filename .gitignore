@@ -1,0 +1,13 @@
+# 依赖
+node_modules/
+
+# 构建产物（dist/ 由 GitHub Actions 构建并部署，不入库）
+dist/
+
+# 本地 Vite 配置覆盖
+vite.config.js.local
+
+# 各类本地配置与日志
+*.local
+npm-debug.log*
+.DS_Store
