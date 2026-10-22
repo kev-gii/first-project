@@ -912,6 +912,159 @@ section, header, footer { position: relative; z-index: 1; }
   .concert__actions { flex-wrap: wrap; justify-content: center; }
 }
 
+/* ---------- 选座购票（3.2）：半圆看台座位图 + 订单摘要 ---------- */
+.seatmap {
+  display: grid;
+  gap: 1.6rem;
+}
+.seatmap__pick {
+  display: flex;
+  align-items: center;
+  gap: 0.8rem;
+  max-width: 560px;
+}
+.seatmap__label {
+  font-family: var(--sans);
+  font-size: 0.85rem;
+  letter-spacing: 0.12em;
+  color: var(--ink-dim);
+  white-space: nowrap;
+}
+.seatmap__pick select {
+  flex: 1;
+  padding: 0.55rem 0.8rem;
+  background: var(--surface);
+  color: var(--ink);
+  border: 1px solid var(--line);
+  border-radius: 4px;
+  font-family: var(--sans);
+  font-size: 0.9rem;
+}
+.seatmap__pick select:focus {
+  outline: none;
+  border-color: var(--line-strong);
+  box-shadow: 0 0 0 3px var(--glow);
+}
+.seatmap__body {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 300px;
+  gap: 1.6rem;
+  align-items: start;
+}
+.seatmap__stage-wrap svg {
+  width: 100%;
+  height: auto;
+  display: block;
+}
+/* 舞台与订单摘要 */
+.seatmap__stage-wrap svg .seatmap-stage { fill: var(--ink-dim); opacity: 0.35; }
+.seatmap__stage-wrap svg .seatmap-stage-label {
+  font-family: var(--serif);
+  font-size: 13px;
+  letter-spacing: 0.4em;
+  fill: var(--ink-dim);
+}
+.seatmap__order {
+  font-family: var(--sans);
+  font-size: 0.75rem;
+  line-height: 1.6;
+  color: var(--ink-dim);
+  background: var(--bg);
+  border: 1px solid var(--line);
+  border-radius: 4px;
+  padding: 0.7rem;
+  margin: 0.5rem 0 0;
+  white-space: pre-wrap;
+}
+/* 座位：CSS 变量控制填充（图例/已售/选中复用同一套色） */
+.seatmap__stage-wrap svg .seat {
+  fill: var(--line-strong);
+  cursor: pointer;
+  transition: fill 0.15s var(--ease);
+}
+.seatmap__stage-wrap svg .seat--vip { fill: var(--gold); opacity: 0.55; }
+.seatmap__stage-wrap svg .seat--gold { fill: var(--gold-bright); opacity: 0.4; }
+.seatmap__stage-wrap svg .seat--std { fill: var(--ink-dim); opacity: 0.3; }
+.seatmap__stage-wrap svg .seat:hover:not(.is-sold) { opacity: 1; }
+.seatmap__stage-wrap svg .seat.is-sold { fill: #555; opacity: 0.35; cursor: not-allowed; }
+.seatmap__stage-wrap svg .seat.is-sel {
+  fill: var(--gold-bright);
+  opacity: 1;
+  stroke: var(--bg);
+  stroke-width: 1.5;
+}
+.seatmap__legend {
+  list-style: none;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem 1.2rem;
+  padding: 0;
+  margin: 0.8rem 0 0;
+  font-family: var(--sans);
+  font-size: 0.78rem;
+  color: var(--ink-dim);
+}
+.seatmap__swatch {
+  display: inline-block;
+  width: 0.85rem;
+  height: 0.85rem;
+  border-radius: 2px;
+  vertical-align: -1px;
+  margin-right: 0.35rem;
+}
+.seatmap__swatch--vip { background: var(--gold); opacity: 0.75; }
+.seatmap__swatch--gold { background: var(--gold-bright); opacity: 0.6; }
+.seatmap__swatch--std { background: var(--ink-dim); opacity: 0.45; }
+.seatmap__swatch--sold { background: #555; opacity: 0.4; }
+.seatmap__swatch--sel { background: var(--gold-bright); }
+.seatmap__panel {
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  padding: 1.2rem;
+  background: var(--surface);
+}
+.seatmap__panel-title {
+  font-family: var(--serif);
+  font-size: 1.05rem;
+  font-weight: 600;
+  color: var(--ink);
+  margin: 0 0 0.9rem;
+  letter-spacing: 0.04em;
+}
+.seatmap__empty { color: var(--ink-dim); font-size: 0.85rem; line-height: 1.5; }
+.seatmap__list { list-style: none; padding: 0; margin: 0 0 0.9rem; display: grid; gap: 0.45rem; }
+.seatmap__list li {
+  display: flex;
+  justify-content: space-between;
+  gap: 0.6rem;
+  font-size: 0.85rem;
+  padding: 0.4rem 0.55rem;
+  border: 1px solid var(--line);
+  border-radius: 4px;
+}
+.seatmap__list li strong { color: var(--gold-bright); font-weight: 600; }
+.seatmap__list .seat-t { color: var(--ink-dim); }
+.seatmap__total {
+  display: flex;
+  justify-content: space-between;
+  font-size: 0.95rem;
+  padding: 0.4rem 0.2rem 0.9rem;
+  border-top: 1px solid var(--line);
+}
+.seatmap__total strong { color: var(--gold-bright); font-family: var(--serif); font-size: 1.15rem; }
+.seatmap__panel .btn { width: 100%; justify-content: center; }
+.seatmap__panel .btn:disabled { opacity: 0.4; cursor: not-allowed; }
+.seatmap__done {
+  font-size: 0.82rem;
+  color: var(--gold-bright);
+  line-height: 1.5;
+  min-height: 1.2em;
+}
+
+@media (max-width: 860px) {
+  .seatmap__body { grid-template-columns: 1fr; }
+}
+
 /* ---------- 降低动效（5.2 / 6.1）：系统开启"减少动态效果"时停用全部动画 ---------- */
 @media (prefers-reduced-motion: reduce) {
   *,

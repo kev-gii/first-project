@@ -216,6 +216,12 @@ const AudioBus = (function () {
     return master;
   }
 
+  // WAV 采样解码（SoundFont 采样播放用，2.1）
+  function decode(arrayBuffer) {
+    ensure();
+    return ctx.decodeAudioData(arrayBuffer);
+  }
+
   function setVolume(v) {
     if (!ctx) {
       master = null;
@@ -240,10 +246,93 @@ const AudioBus = (function () {
     return freqData;
   }
 
-  return { getCtx, getMaster, ensure, resume, setVolume, getLevel, getFrequencies };
+  return { getCtx, getMaster, ensure, resume, decode, setVolume, getLevel, getFrequencies };
 })();
 
-/* ---------- 6. 声部卡片：按声部定制的合成音色试听 ----------
+/* ---------- 5.5 SoundFont 式采样层（2.1）：本地 WAV 优先，缺失时回退振荡器合成 ----------
+   采样由 tools/make-soundfont-samples.py 生成（assets/soundfont/，含 manifest.json）。
+   fetch + AudioBus.decode 得到 AudioBuffer，用 BufferSourceNode 播放；
+   任一采样缺失（如 file:// 直开、网络异常）→ hasXxx 返回 false → 原合成路径。
+   --------------------------------------------------------------- */
+const SoundSamples = (function () {
+  const cache = {}; // key → AudioBuffer（加载成功才写入）
+  const pending = new Set(); // 正在加载的 key（防重复 fetch）
+
+  function fetchOne(key) {
+    if (cache[key] || pending.has(key)) return;
+    pending.add(key);
+    fetch("assets/soundfont/" + key + ".wav")
+      .then((r) => {
+        if (!r.ok) throw new Error("http " + r.status);
+        return r.arrayBuffer();
+      })
+      .then((ab) => AudioBus.decode(ab))
+      .then((buf) => { cache[key] = buf; })
+      .catch(() => { /* 采样不可用 → 保持振荡器合成（回退） */ });
+  }
+
+  function prime() {
+    fetchOne("strings"); fetchOne("woodwinds"); fetchOne("brass"); fetchOne("percussion");
+    ["bach", "mozart", "beethoven", "tchaikovsky", "dvorak", "mahler"].forEach(fetchOne);
+  }
+
+  function hasVoice(key) { return Boolean(cache[key]); }
+  function hasTrack(key) { return Boolean(cache[key]); }
+  function durationOf(key) { return cache[key] ? cache[key].duration : 0; }
+
+  // 播放一段采样（声部示范，一次性 + 尾部淡出）
+  function playVoice(key) {
+    const buf = cache[key];
+    if (!buf) return false;
+    const ctx = AudioBus.getCtx();
+    const src = ctx.createBufferSource();
+    src.buffer = buf;
+    const g = ctx.createGain();
+    g.gain.value = 0.9;
+    const now = ctx.currentTime;
+    const end = now + buf.duration - 0.08;
+    g.gain.setValueAtTime(0.9, end);
+    g.gain.exponentialRampToValueAtTime(0.0001, now + buf.duration);
+    src.connect(g); g.connect(AudioBus.getMaster());
+    src.start(now);
+    return true;
+  }
+
+  // 循环播放曲目采样；onEnd 在一轮结束时回调（供进度条推进）
+  let curSrc = null, curGain = null, curLoopTimer = null;
+
+  function stopAll() {
+    if (curSrc) { try { curSrc.stop(); } catch (e) { /* 已停止 */ } curSrc = null; }
+    if (curGain) { try { curGain.disconnect(); } catch (e) { /* 已断开 */ } curGain = null; }
+    if (curLoopTimer) { clearTimeout(curLoopTimer); curLoopTimer = null; }
+  }
+
+  function loopTrack(key) {
+    const buf = cache[key];
+    if (!buf) return false;
+    stopAll();
+    const ctx = AudioBus.getCtx();
+    const src = ctx.createBufferSource();
+    src.buffer = buf;
+    src.loop = true;
+    const g = ctx.createGain();
+    g.gain.value = 0.95;
+    src.connect(g); g.connect(AudioBus.getMaster());
+    src.start();
+    curSrc = src; curGain = g;
+    const durMs = buf.duration * 1000;
+    curLoopTimer = setTimeout(function tick() {
+      if (curSrc !== src) return; // 已切走/停掉
+      curLoopTimer = setTimeout(tick, durMs);
+    }, durMs);
+    return true;
+  }
+
+  prime(); // 首次用户手势（点击声部/曲目）前就静默拉取，命中后即时可用
+  return { hasVoice, hasTrack, durationOf, playVoice, loopTrack, stopAll };
+})();
+
+/* ---------- 6. 声部卡片：采样音色优先（2.1），缺失回退定制合成 ----------
    弦乐：叠层失谐 + 颤音 + 弦弓摩擦（低通噪声）
    木管：簧片起音 + 呼吸声 + 颤音
    铜管：加宽和弦 + 明亮锯齿 + 颤音
@@ -268,9 +357,15 @@ const AudioBus = (function () {
   }
 
   function play(card) {
+    const key = card.dataset.voice || "strings";
+    // SoundFont 采样优先：有本地采样就用（音色更接近真实）；没有 → 下方振荡器合成
+    if (SoundSamples.hasVoice(key) && SoundSamples.playVoice(key)) {
+      card.classList.add("is-playing");
+      setTimeout(() => card.classList.remove("is-playing"), 2100);
+      return;
+    }
     const ctx = AudioBus.getCtx();
     const master = AudioBus.getMaster();
-    const key = card.dataset.voice || "strings";
     const base = Number(card.dataset.note);
     const gain = Number(card.dataset.gain) || 0.12;
     const v = VOICES[key] || VOICES.strings;
@@ -375,7 +470,13 @@ const AudioBus = (function () {
   });
 })();
 
-/* ---------- 7. 演出日程：外部数据 + 动态渲染 + .ics 下载 ---------- */
+/* ---------- 7. 演出日程：外部数据 + 动态渲染 + .ics 下载 ----------
+   数据同时交给 ConcertData（座位图选座等复用同一份场次） */
+const ConcertData = (function () {
+  let resolveFn;
+  const promise = new Promise((res) => { resolveFn = res; });
+  return { promise, deliver(list) { resolveFn(list); } };
+})();
 (function initConcerts() {
   // 数据外置：优先 fetch 外部 JSON；file:// 或 fetch 失败时回退内嵌数据
   // （内容更新只需改 data/concerts.json，无需改 JS）
@@ -439,12 +540,19 @@ const AudioBus = (function () {
     wrap.innerHTML = concerts
       .map((c, i) => `\n      <div class="concert ${c.sold ? "is-soldout" : ""} reveal">\n        <div class="concert__date">\n          <strong>${c.d}</strong>\n          <span>${c.m}</span>\n        </div>\n        <div class="concert__body">\n          <h3>${c.title}</h3>\n          <p>${c.desc}</p>\n        </div>\n        <div class="concert__actions">\n          ${c.sold
           ? `<a class="btn btn--ghost concert__soldout" href="#ticket" style="border-color:#555">已售罄</a>`
-          : `<a class="btn btn--gold" href="#ticket">购票</a>`}\n          <button class="concert__ics" type="button" data-ics="${i}" aria-label="将「${c.title}」加入日历">加日历</button>\n        </div>\n      </div>`
+          : `<a class="btn btn--gold" href="#seatmap" data-seatpick="${i}">选座购票</a>`}\n          <button class="concert__ics" type="button" data-ics="${i}" aria-label="将「${c.title}」加入日历">加日历</button>\n        </div>\n      </div>`
       )
       .join("");
 
     wrap.querySelectorAll("[data-ics]").forEach((btn) => {
       btn.addEventListener("click", () => downloadICS(concerts[Number(btn.dataset.ics)]));
+    });
+    // 「选座购票」→ 预选该场次（选座模块在 ConcertData 上消费这个值）
+    wrap.querySelectorAll("[data-seatpick]").forEach((btn) => {
+      btn.addEventListener("click", () => {
+        const pick = document.getElementById("seatConcert");
+        if (pick) { pick.value = btn.dataset.seatpick; pick.dispatchEvent(new Event("change")); }
+      });
     });
   }
 
@@ -454,9 +562,11 @@ const AudioBus = (function () {
       return r.json();
     })
     .then((data) => {
-      Array.isArray(data) && data.length ? render(data) : render(FALLBACK);
+      const list = Array.isArray(data) && data.length ? data : FALLBACK;
+      render(list);
+      ConcertData.deliver(list); // 座位图等复用
     })
-    .catch(() => render(FALLBACK)); // file:// 或网络异常 → 内嵌数据保底
+    .catch(() => { render(FALLBACK); ConcertData.deliver(FALLBACK); }); // file:// 或网络异常 → 内嵌数据保底
 
   // 小节线分隔符（声部/曲目/演出日程 之间）
   const ids = ["sections", "repertoire", "concerts"];
@@ -537,10 +647,13 @@ const AudioBus = (function () {
   let schedTimer = null;
   let progRaf = 0;
   let loopGain = null;   // 当前一轮循环的独立增益组（切换/暂停时整体断开）
+  let progressDur = BEATS * TEMPO; // 当前播放周期的时长（采样模式下 = 采样实际时长）
 
   // 立即停止所有已排程的振荡器：断开本轮 loopGain + 清重排定时器
   // （预排程的音符在未来时间才会出声，必须整组断开才能立刻静音）
+  // 同时停掉 2.1 的采样循环（若当前是采样模式）
   function stopScheduled() {
+    SoundSamples.stopAll(); // 采样循环（未激活时为无操作）
     clearSched();
     if (loopGain) {
       try { loopGain.disconnect(); } catch (e) { /* 已断开则忽略 */ }
@@ -656,7 +769,7 @@ const AudioBus = (function () {
     (function tick() {
       if (!playing || !active) return;
       const ctx = AudioBus.getCtx();
-      const el = (ctx.currentTime - activeStart) / (BEATS * TEMPO);
+      const el = (ctx.currentTime - activeStart) / progressDur;
       const pct = ((el % 1 + 1) % 1) * 100;
       if (bar) bar.style.width = pct.toFixed(1) + "%";
       progRaf = requestAnimationFrame(tick);
@@ -664,12 +777,19 @@ const AudioBus = (function () {
   }
 
   function select(key) {
-    stopScheduled(); // 先停掉上一首（含已排程未播出的音符），再播新的
+    stopScheduled(); // 先停掉上一首（含已排程未播出的音符与采样循环），再播新的
     active = key;
     playing = true;
     markActive(key);
     if (trackBtn) trackBtn.textContent = "暂停";
-    schedule(key);
+    // 采样优先（2.1）：有本地曲目采样 → 循环播放（音色更真实）；缺失 → 振荡器引擎
+    if (SoundSamples.hasTrack(key) && SoundSamples.loopTrack(key)) {
+      progressDur = SoundSamples.durationOf(key);
+      activeStart = AudioBus.getCtx().currentTime;
+    } else {
+      progressDur = BEATS * TEMPO;
+      schedule(key);
+    }
     startProgress();
   }
 
@@ -686,7 +806,13 @@ const AudioBus = (function () {
       if (trackBtn) trackBtn.textContent = "播放";
     } else {
       playing = true;
-      schedule(active);
+      // 采样优先（2.1）：恢复播放时同样先试采样，缺失才走振荡器引擎
+      if (SoundSamples.hasTrack(active) && SoundSamples.loopTrack(active)) {
+        progressDur = SoundSamples.durationOf(active);
+        activeStart = AudioBus.getCtx().currentTime;
+      } else {
+        schedule(active);
+      }
       startProgress();
       if (trackBtn) trackBtn.textContent = "暂停";
     }
@@ -795,4 +921,210 @@ const AudioBus = (function () {
     .querySelectorAll(".section__eyebrow, .section__title, .section__lead, .voice, .conductor, .rep__item, .hero__stats, .mini-player")
     .forEach((el) => el.classList.add("reveal"));
   document.querySelectorAll(".reveal").forEach((el) => io.observe(el));
+})();
+
+/* ---------- 12. 选座购票（3.2）：半圆看台 SVG 座位图 + 订单摘要 ----------
+    12 排 × 21 座 = 252 座。看台为舞台（顶部）向下的同心圆弧。
+    票价档位：VIP 前区（1–3 排）¥880 · 金卡区（4–7 排）¥560 · 普通区（8–12 排）¥380
+    已售座位按场次稳定哈希生成（同一场次每次打开布局一致），最多选 8 座。 */
+(function initSeatMap() {
+  const svg = document.getElementById("seatMapSvg");
+  const pick = document.getElementById("seatConcert");
+  const listEl = document.getElementById("seatList");
+  const totalEl = document.getElementById("seatTotal");
+  const emptyEl = document.getElementById("seatEmpty");
+  const confirmBtn = document.getElementById("seatConfirm");
+  const doneEl = document.getElementById("seatDone");
+  if (!svg || !pick) return;
+
+  const NS = "http://www.w3.org/2000/svg";
+  const ROWS = 12, PER_ROW = 21, MAX_PICK = 8;
+  const VIEW_W = 800, VIEW_H = 450;
+  const CX = VIEW_W / 2;          // 水平中点
+  const CY = 70;                 // 圆心 = 舞台中心（顶部），座位向观众（下方）扇形展开
+  const R_IN = 120;               // 第 1 排（VIP，离舞台最近）半径，最小
+  const DR = 20;                 // 相邻排半径差（排距）
+  const THETA_IN = 0.95;         // 第 1 排半弧宽（弧度，≈54°）
+  const THETA_DR = 0.018;         // 越往后弧越宽；后区半弧 ≈65.7°，角点 x≈±311、y≈210 在 viewBox 内
+
+  const tierOf = (row) => (row <= 3 ? "vip" : row <= 7 ? "gold" : "std");
+  const priceOf = (row) => (row <= 3 ? 880 : row <= 7 ? 560 : 380);
+  const tierName = { vip: "VIP 前区", gold: "金卡区", std: "普通区" };
+
+  // 舞台：台面 + 弧形台口（圆心 CY=70 在台面内，座位扇形向下展开）
+  const stage = document.createElementNS(NS, "g");
+  const apron = document.createElementNS(NS, "path");
+  apron.setAttribute("d", "M 330 26 L 470 26 L 452 110 Q 400 122 348 110 Z");
+  apron.setAttribute("class", "seatmap-stage");
+  const label = document.createElementNS(NS, "text");
+  label.setAttribute("x", CX);
+  label.setAttribute("y", 72);
+  label.setAttribute("text-anchor", "middle");
+  label.setAttribute("class", "seatmap-stage-label");
+  label.textContent = "舞 台";
+  stage.appendChild(apron);
+  stage.appendChild(label);
+  svg.appendChild(stage);
+
+  // 座位分组（每个座位自带 <title> 悬停提示）
+  const seatG = document.createElementNS(NS, "g");
+  svg.appendChild(seatG);
+
+  let current = null;   // 当前场次
+  const picked = [];    // 已选座位 [{row, col, label, price}]
+
+  function seatPos(row, col) {
+    // 每排 21 座（col 0–20）沿本排圆弧均匀分布；第 1 排半径最小（最靠舞台），越往后半径越大，
+    // 看台向观众（下方）呈经典扇形。t 为本排圆弧上的角度：-th（左外）→ 0（正对舞台）→ +th（右外）。
+    const r = R_IN + (row - 1) * DR;
+    const th = THETA_IN + (row - 1) * THETA_DR; // 本排半弧宽（弧度）
+    const t = -th + (col / 10) * th; // col 0→-th（左外），10→0（正中），20→+th（右外）；逐座步进 th/5
+    // t=0 正对舞台；圆心在舞台中心（CY），cos(t) 向下展开
+    return {
+      x: CX + r * Math.sin(t),
+      y: CY + r * Math.cos(t),
+    };
+  }
+
+  function seatLabel(row, col) {
+    // 两侧对称：中央 B1；靠中为 1 号向外递增到 10（col 0/20 最外 = 10 号，col 9/11 最靠中 = 1 号）
+    const side = col < 10 ? "A" : col === 10 ? "B" : "C";
+    const n = col === 10 ? 1 : col < 10 ? 10 - col : col - 10;
+    return `R${row}·${side}${n}`;
+  }
+
+  // 确定性哈希：同场次同座位的售出状态恒定
+  function isSold(concert, row, col) {
+    const s = `${concert.d}|${row}-${col}`;
+    let h = 0;
+    for (let i = 0; i < s.length; i++) h = (h * 31 + s.charCodeAt(i)) >>> 0;
+    return h % 100 < 22; // 约 22% 已售
+  }
+
+  function buildMap() {
+    picked.length = 0;
+    doneEl.textContent = "";
+    while (seatG.firstChild) seatG.removeChild(seatG.firstChild);
+    for (let row = 1; row <= ROWS; row++) {
+      for (let col = 0; col < PER_ROW; col++) {
+        const c = document.createElementNS(NS, "circle");
+        const p = seatPos(row, col);
+        c.setAttribute("cx", p.x.toFixed(1));
+        c.setAttribute("cy", p.y.toFixed(1));
+        c.setAttribute("r", 5);
+        c.setAttribute("class", `seat seat--${tierOf(row)}`);
+        c.dataset.row = row;
+        c.dataset.col = col;
+        const sold = isSold(current, row, col);
+        if (sold) c.classList.add("is-sold");
+        // 悬停提示：原生 <title>，随座位重建
+        const tip = document.createElementNS(NS, "title");
+        tip.textContent = sold
+          ? `${seatLabel(row, col)} · 已售`
+          : `${seatLabel(row, col)} · ${tierName[tierOf(row)]} 第 ${row} 排 · ¥ ${priceOf(row)}`;
+        c.appendChild(tip);
+        c.addEventListener("click", () => toggleSeat(c, row, col, sold));
+        seatG.appendChild(c);
+      }
+    }
+    renderPanel();
+  }
+
+  function toggleSeat(c, row, col, sold) {
+    if (sold) return;
+    const key = `${row}-${col}`;
+    const i = picked.findIndex((s) => s.key === key);
+    if (i >= 0) {
+      picked.splice(i, 1);
+      c.classList.remove("is-sel");
+    } else {
+      if (picked.length >= MAX_PICK) {
+        doneEl.textContent = `最多可选 ${MAX_PICK} 座，先取消一座再选吧。`;
+        return;
+      }
+      picked.push({ key, row, col, label: seatLabel(row, col), price: priceOf(row), tier: tierOf(row) });
+      c.classList.add("is-sel");
+    }
+    doneEl.textContent = "";
+    renderPanel();
+  }
+
+  function renderPanel() {
+    emptyEl.style.display = picked.length ? "none" : "";
+    listEl.innerHTML = "";
+    let sum = 0;
+    picked.slice().sort((a, b) => a.row - b.row || a.col - b.col).forEach((s) => {
+      const li = document.createElement("li");
+      li.innerHTML = `<span><strong>${s.label}</strong> <span class="seat-t">${tierName[s.tier]} ${s.row} 排</span></span><span>¥ ${s.price}</span>`;
+      listEl.appendChild(li);
+      sum += s.price;
+    });
+    totalEl.textContent = `¥ ${sum}`;
+    confirmBtn.disabled = !picked.length;
+  }
+
+  function generateOrder() {
+    if (!picked.length) return;
+    const concertText = `${current.d} ${current.m} · ${current.title}`;
+    const lines = [
+      `【AURORA 选座订单摘要】`,
+      `场次：${concertText}`,
+      `场馆：${current.venue || "AURORA 音乐厅"}`,
+      ``,
+      ...picked.slice().sort((a, b) => a.row - b.row || a.col - b.col)
+        .map((s) => `${s.label}（${tierName[s.tier]} ${s.row} 排） ¥ ${s.price}`),
+      ``,
+      `合计 ¥ ${picked.reduce((n, s) => n + s.price, 0)} · ${picked.length} 座`,
+      `订单号：AU-${Date.now().toString(36).toUpperCase()}`,
+    ];
+    // 复制到剪贴板；失败则直接展示
+    const text = lines.join("\n");
+    doneEl.textContent = "订单摘要已生成（见下方）";
+    doneEl.innerHTML = "";
+    const pre = document.createElement("pre");
+    pre.className = "seatmap__order";
+    pre.textContent = text;
+    doneEl.appendChild(pre);
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(text).then(
+        () => { pre.textContent = text + "\n\n（已复制到剪贴板）"; },
+        () => {}
+      );
+    }
+  }
+
+  confirmBtn.addEventListener("click", generateOrder);
+
+  function loadOptions(list) {
+    pick.innerHTML = "";
+    const opts = list
+      .map((c, i) => ({ i, sold: !!c.sold }))
+      .filter((c) => !c.sold);
+    if (!opts.length) {
+      pick.innerHTML = `<option value="">暂无可选场次</option>`;
+      return;
+    }
+    opts.forEach(({ i }) => {
+      const o = document.createElement("option");
+      o.value = i;
+      o.textContent = `${list[i].d} ${list[i].m} · ${list[i].title}`;
+      pick.appendChild(o);
+    });
+    pick.value = String(opts[0].i);
+    current = list[Number(pick.value)];
+    buildMap();
+  }
+
+  // 切换场次：options 的 value 是场次在 list 中的索引；__list 由 ConcertData 填充
+  function loadForIndex(idx) {
+    if (!pick.__list) return;
+    current = pick.__list[idx];
+    buildMap();
+  }
+  pick.addEventListener("change", () => loadForIndex(Number(pick.value)));
+
+  ConcertData.promise.then((list) => {
+    pick.__list = list;
+    loadOptions(list);
+  });
 })();
