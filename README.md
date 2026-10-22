@@ -68,10 +68,12 @@ npm run preview   # 在本地预览 dist/ 构建产物
 
 推送到 `main` 后，`.github/workflows/github-pages.yml` 自动用 Vite 构建并把 `dist/` 发布到 GitHub Pages：
 
-1. 仓库 **Settings → Pages → Source** 选择 **GitHub Actions**
+1. 在仓库 **Settings → Pages** 把 **Source** 设为 **GitHub Actions**
+   （workflow 里 `configure-pages` 带 `enablement: "ephemeral"`，即便忘了这步，首次运行也会自举建起站点）
 2. 之后每次 `push` 到 `main` 自动构建 + 发布
 3. 产物用 `base: "./"`，在 `/first-project/` 子路径可直接打开（无需为部署环境改代码）
 
+> 若 Actions 报 `Get Pages site failed / Not Found`：在 Settings → Pages 选择 Source = GitHub Actions 后重跑即可；
 > 也可改用 Cloudflare Pages / Vercel，配自定义域名与 CNAME（HTTPS 由 Pages 默认提供）。
 
 ## 使用方法

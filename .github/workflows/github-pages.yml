@@ -1,8 +1,10 @@
 # 把 AURORA 站点发布到 GitHub Pages（仓库 kev-gii/first-project）
 #
 # 发布流程：push 到 main → 自动构建（Vite）→ 把 dist/ 交给 Pages 部署。
-# 首次使用前需在 GitHub 仓库 Settings → Pages → Source 选择「GitHub Actions」，
-# 之后每次 push 会自动发布。产物使用 base:"./"，可在 /first-project/ 子路径正常打开。
+# configure-pages 带 enablement:'ephemeral'：即使仓库尚未在
+# Settings → Pages → Source 设为「GitHub Actions」，首次运行也能自举
+# 建起站点，避免 "Get Pages site failed / Not Found" 报错。
+# 产物使用 base:"./"，可在 /first-project/ 子路径正常打开。
 
 name: Deploy to GitHub Pages
 
@@ -33,6 +35,10 @@ jobs:
 
       - name: Setup Pages
         uses: actions/configure-pages@v5
+        with:
+          # 自举启用 Pages：仓库未预先在 Settings→Pages 选择「GitHub Actions」时，
+          # 本次运行也会创建站点，规避 "Get Pages site failed / Not Found"。
+          enablement: "ephemeral"
 
       - name: Setup Node
         uses: actions/setup-node@v4
