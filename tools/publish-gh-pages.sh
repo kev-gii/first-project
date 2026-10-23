@@ -56,7 +56,12 @@ cp -R "$REPO_ROOT/dist/." .
 
 echo "==> 3/4 提交"
 git add -A
-git commit -q -m "publish: site build $(date '+%Y-%m-%d %H:%M') [main @ ${MAIN_REV}]"
+if git diff --cached --quiet; then
+  # 内容已是最新（main 自上次发布后未变）：无需新建提交，正常退出
+  echo "本次构建内容与现有 gh-pages 完全一致（main @ $(git log -1 --format=%h) 未变），无需新提交。"
+else
+  git commit -q -m "publish: site build $(date '+%Y-%m-%d %H:%M') [main @ ${MAIN_REV}]"
+fi
 
 if [ "$DRY_RUN" = "1" ]; then
   echo "==> 4/4 dry-run：已提交到本地 gh-pages 分支，跳过 push（去掉 --dry-run 再跑即可发布）"
