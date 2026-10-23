@@ -74,7 +74,7 @@ echo "==> 3/4 提交"
 git add -A
 if git diff --cached --quiet; then
   # 内容已是最新（main 自上次发布后未变）：无需新建提交，正常退出
-  echo "本次构建内容与现有 gh-pages 完全一致（main @ $(git log -1 --format=%h) 未变），无需新提交。"
+  echo "本次构建产物与现有 gh-pages 完全一致（当前 main @ ${MAIN_REV}），无需新提交。"
 else
   git commit -q -m "publish: site build $(date '+%Y-%m-%d %H:%M') [main @ ${MAIN_REV}]"
 fi
