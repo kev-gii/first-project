@@ -49,6 +49,7 @@ public/
   assets/                  静态素材（Hero 图、指挥家/作曲家 SVG、soundfont 采样层）
   data/concerts.json       演出日程（fetch 外置数据）
 tools/make-soundfont-samples.py  采样生成脚本（Python 标准库，生成 WAV 与 manifest）
+tools/publish-gh-pages.sh        手动发布脚本（本地构建 + 发布到 gh-pages 分支，替代 GitHub Actions）
 vite.config.js             Vite 构建配置（base:"./" 子路径安全、产物入 dist/vendor/）
 package.json               Vite 开发依赖 + 脚本（dev / build / preview）
 ```
@@ -64,17 +65,25 @@ npm run preview   # 在本地预览 dist/ 构建产物
 
 > 直接双击 `index.html` 也能跑（模块经 Vite 解析），但**采样试听与演出数据需经 HTTP 服务**（`file://` 下 `fetch` 受限），故推荐 `npm run dev` / `npm run preview`。
 
-## 部署（GitHub Pages）
+## 部署（本地构建 → gh-pages 分支，不使用 GitHub Actions）
 
-推送到 `main` 后，`.github/workflows/github-pages.yml` 自动用 Vite 构建并把 `dist/` 发布到 GitHub Pages：
+手动发布：本地构建后把 `dist/` 推送到 `gh-pages` 分支（无 CI、无额外费用）。
 
-1. 在仓库 **Settings → Pages** 把 **Source** 设为 **GitHub Actions**
-   （workflow 里 `configure-pages` 带 `enablement: "ephemeral"`，即便忘了这步，首次运行也会自举建起站点）
-2. 之后每次 `push` 到 `main` 自动构建 + 发布
-3. 产物用 `base: "./"`，在 `/first-project/` 子路径可直接打开（无需为部署环境改代码）
+```bash
+bash tools/publish-gh-pages.sh            # 自动：npm run build → 提交 → push origin gh-pages
+bash tools/publish-gh-pages.sh --dry-run  # 仅本地构建 + 提交，不推送（试跑）
+```
 
-> 若 Actions 报 `Get Pages site failed / Not Found`：在 Settings → Pages 选择 Source = GitHub Actions 后重跑即可；
-> 也可改用 Cloudflare Pages / Vercel，配自定义域名与 CNAME（HTTPS 由 Pages 默认提供）。
+脚本在独立的 `git worktree` 中操作，main 工作区全程保持干净（首次会自动创建 orphan `gh-pages` 分支）。
+
+一次性 GitHub 配置（首次推送后）：
+
+1. 仓库 **Settings → Pages → Source** 选择 **Deploy from a branch**，分支 = `gh-pages`，文件夹 = `/ (root)`
+   （若当前仍是旧的 "GitHub Actions" 来源或已存在旧站点，先点 **Delete site** 下架）
+2. 数分钟后站点在 `https://kev-gii.github.io/first-project/` 生效
+
+> `vite.config.js` 中 `base: "./"` 保证资源相对定位，在 `/first-project/` 子路径可直接打开。
+> 也可改用 Cloudflare Pages / Vercel，配自定义域名与 CNAME（HTTPS 由托管方默认提供）。
 
 ## 使用方法
 
