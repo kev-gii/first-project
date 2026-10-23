@@ -1,0 +1,50 @@
+{
+  "meta": {
+    "format": "44.1kHz mono 16-bit WAV",
+    "note": "由 tools/make-soundfont-samples.py 生成"
+  },
+  "voice": {
+    "strings": {
+      "file": "strings.wav",
+      "duration": 4.0
+    },
+    "woodwinds": {
+      "file": "woodwinds.wav",
+      "duration": 4.0
+    },
+    "brass": {
+      "file": "brass.wav",
+      "duration": 4.0
+    },
+    "percussion": {
+      "file": "percussion.wav",
+      "duration": 4.0
+    }
+  },
+  "track": {
+    "bach": {
+      "file": "bach.wav",
+      "duration": 4.0
+    },
+    "mozart": {
+      "file": "mozart.wav",
+      "duration": 4.0
+    },
+    "beethoven": {
+      "file": "beethoven.wav",
+      "duration": 4.0
+    },
+    "tchaikovsky": {
+      "file": "tchaikovsky.wav",
+      "duration": 4.0
+    },
+    "dvorak": {
+      "file": "dvorak.wav",
+      "duration": 4.0
+    },
+    "mahler": {
+      "file": "mahler.wav",
+      "duration": 4.0
+    }
+  }
+}
