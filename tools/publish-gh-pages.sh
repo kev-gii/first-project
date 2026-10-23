@@ -37,6 +37,22 @@ trap cleanup EXIT
 git worktree add --detach "$DEPLOY_WT" HEAD >/dev/null
 cd "$DEPLOY_WT"
 
+# 清理任何仍注册在 gh-pages 上的旧临时 worktree（含上次失败遗留）
+# 否则 `git checkout gh-pages` 会因 "branch already used by worktree" 而失败
+# （自身新建的 deploy worktree 是 detached，不会误伤；主 worktree 在 main 上，也不匹配）
+while IFS=$'\t' read -r wt wt_ref; do
+  case "$wt_ref" in
+    *gh-pages*)
+      [ "$wt" = "$REPO_ROOT" ] && continue
+      echo "  清理遗留 worktree（占用 gh-pages）：$wt"
+      git worktree remove "$wt" --force 2>/dev/null || { rm -rf "$wt" 2>/dev/null || true; git worktree prune; }
+      ;;
+  esac
+done < <(git worktree list --porcelain | awk '
+  /^worktree /{path=$2}
+  /^branch /{if (path!="") {print path"\t"$2}; path=""}')
+git worktree prune
+
 MAIN_REV="$(git rev-parse --short HEAD)"
 
 echo "==> 2/4 准备 gh-pages 内容"
